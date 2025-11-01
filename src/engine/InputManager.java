@@ -48,8 +48,8 @@ public final class InputManager implements KeyListener, MouseListener, MouseMoti
     private int lastPressedKey = -1;
     private static final String KEY_CONFIG_FILE = "keyconfig.txt";
 
-    protected static int[] player1Keys;
-    protected static int[] player2Keys;
+    private static int[] player1Keys;
+    private static int[] player2Keys;
 
     public void setPlayer1Keys(int[] newKeys) {
         player1Keys = newKeys.clone();
@@ -79,7 +79,7 @@ public final class InputManager implements KeyListener, MouseListener, MouseMoti
 	 *
 	 * @return Shared instance of InputManager.
 	 */
-	protected static InputManager getInstance() {
+	static InputManager getInstance() {
 		if (instance == null)
 			instance = new InputManager();
 		return instance;
@@ -140,40 +140,6 @@ public final class InputManager implements KeyListener, MouseListener, MouseMoti
 
     public boolean isP1ShootPressed() {
         return isKeyDown(player1Keys[2]);
-    }
-
-
-    // ==================== PLAYER 2 CONTROLS ====================
-    // Player 2 uses Arrow Keys + Enter configuration
-    // Added for two-player mode implementation
-
-    /**
-     * Checks if Player 2's move left key (player2keys[0] is pressed.
-     *
-     * @return True if Player 2 is moving left
-     */
-
-    public boolean isP2LeftPressed() {
-        return isKeyDown(player2Keys[0]);
-    }
-
-    /**
-     * Checks if Player 2's move right key (player2keys[1]) is pressed.
-     *
-     * @return True if Player 2 is moving right
-     */
-
-    public boolean isP2RightPressed() {
-        return isKeyDown(player2Keys[1]);
-    }
-
-    /**
-     * Checks if Player 2's shoot key (player2keys[2]) is pressed.
-     *
-     * @return True if Player 2 is shooting
-     */
-    public boolean isP2ShootPressed() {
-        return isKeyDown(player2Keys[2]);
     }
 
 	/**
@@ -273,8 +239,8 @@ public final class InputManager implements KeyListener, MouseListener, MouseMoti
             e.printStackTrace();
         }
     }
-    /**
-     * After setting the default, import the saved key settings from the file and cover the default values
+    /*
+      After setting the default, import the saved key settings from the file and cover the default values
      */
     static {
         instance = new InputManager();

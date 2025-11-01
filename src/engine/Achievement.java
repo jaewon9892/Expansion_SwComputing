@@ -4,8 +4,8 @@ package engine;
  * Represents a single achievement with name, description, and unlock state.
  */
 public class Achievement {
-    private String name;
-    private String description;
+    private final String name;
+    private final String description;
     private boolean unlocked;
 
     public Achievement(String name, String description) {

@@ -47,26 +47,26 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
     private static final int MINIMUM_SPEED = 10;
 
     /** DrawManager instance. */
-    private DrawManager drawManager;
+    private final DrawManager drawManager;
     /** Application logger. */
-    private Logger logger;
+    private final Logger logger;
     /** Screen to draw ships on. */
     private Screen screen;
 
     /** List of enemy ships forming the formation. */
-    private List<List<EnemyShip>> enemyShips;
+    private final List<List<EnemyShip>> enemyShips;
     /** Minimum time between shots. */
     private Cooldown shootingCooldown;
     /** Number of ships in the formation - horizontally. */
-    private int nShipsWide;
+    private final int nShipsWide;
     /** Number of ships in the formation - vertically. */
-    private int nShipsHigh;
+    private final int nShipsHigh;
     /** Time between shots. */
-    private int shootingInterval;
+    private final int shootingInterval;
     /** Variance in the time between shots. */
-    private int shootingVariance;
+    private final int shootingVariance;
     /** Initial ship speed. */
-    private int baseSpeed;
+    private final int baseSpeed;
     /** Speed of the ships. */
     private int movementSpeed;
     /** Current direction the formation is moving on. */
@@ -84,11 +84,11 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
     /** Position in the y-axis of the upper left corner of the formation. */
     private int positionY;
     /** Width of one ship. */
-    private int shipWidth;
+    private final int shipWidth;
     /** Height of one ship. */
-    private int shipHeight;
+    private final int shipHeight;
     /** List of ships that are able to shoot. */
-    private List<EnemyShip> shooters;
+    private final List<EnemyShip> shooters;
     /** Number of not destroyed ships. */
     private int shipCount;
 
@@ -116,8 +116,8 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
         this.movementInterval = 0;
         this.nShipsWide = gameSettings.getFormationWidth();
         this.nShipsHigh = gameSettings.getFormationHeight();
-        this.shootingInterval = gameSettings.getShootingFrecuency();
-        this.shootingVariance = (int) (gameSettings.getShootingFrecuency()
+        this.shootingInterval = gameSettings.getShootingFrequency();
+        this.shootingVariance = (int) (gameSettings.getShootingFrequency()
                 * SHOOTING_VARIANCE);
         this.baseSpeed = gameSettings.getBaseSpeed();
         this.movementSpeed = this.baseSpeed;
@@ -151,8 +151,8 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
             }
         }
 
-        this.shipWidth = this.enemyShips.get(0).get(0).getWidth();
-        this.shipHeight = this.enemyShips.get(0).get(0).getHeight();
+        this.shipWidth = this.enemyShips.getFirst().getFirst().getWidth();
+        this.shipHeight = this.enemyShips.getFirst().getFirst().getHeight();
 
         this.width = (this.nShipsWide - 1) * SEPARATION_DISTANCE
                 + this.shipWidth;
@@ -313,10 +313,10 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
         for (List<EnemyShip> column : this.enemyShips) {
             if (!column.isEmpty()) {
                 // Height of this column
-                int columnSize = column.get(column.size() - 1).positionY
+                int columnSize = column.getLast().positionY
                         - this.positionY + this.shipHeight;
                 maxColumn = Math.max(maxColumn, columnSize);
-                minPositionY = Math.min(minPositionY, column.get(0)
+                minPositionY = Math.min(minPositionY, column.getFirst()
                         .getPositionY());
             } else {
                 // Empty column, we remove it.
@@ -334,8 +334,8 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
         for (List<EnemyShip> column : this.enemyShips) {
             if (!column.isEmpty()) {
                 if (leftMostPoint == 0)
-                    leftMostPoint = column.get(0).getPositionX();
-                rightMostPoint = column.get(0).getPositionX();
+                    leftMostPoint = column.getFirst().getPositionX();
+                rightMostPoint = column.getFirst().getPositionX();
             }
         }
 
@@ -374,8 +374,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
                 bulletSpeed = BULLET_SPEED * 2;
             }
 
-            if (shooter.getSpriteType() == SpriteType.EnemyShipC1
-                    || shooter.getSpriteType() == SpriteType.EnemyShipC2) {
+            if (shooter.getSpriteType() == SpriteType.EnemyShipC1 || shooter.getSpriteType() == SpriteType.EnemyShipC2) {
                 int offset = 6;
 
                 Bullet b1 = BulletPool.getBullet(
@@ -467,8 +466,7 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
         Set<EnemyShip> enemyShipsList = new HashSet<EnemyShip>();
 
         for (List<EnemyShip> column : this.enemyShips)
-            for (EnemyShip enemyShip : column)
-                enemyShipsList.add(enemyShip);
+            enemyShipsList.addAll(column);
 
         return enemyShipsList.iterator();
     }

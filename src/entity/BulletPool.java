@@ -3,7 +3,6 @@ package entity;
 import java.util.HashSet;
 import java.util.Set;
 import entity.Entity.Team;
-
 /**
  * Implements a pool of recyclable bullets.
  *
@@ -13,7 +12,7 @@ import entity.Entity.Team;
 public final class BulletPool {
 
     /** Set of already created bullets. */
-    private static Set<Bullet> pool = new HashSet<Bullet>();
+    private static final Set<Bullet> pool = new HashSet<Bullet>();
 
     /**
      * Constructor, not called.
@@ -41,23 +40,22 @@ public final class BulletPool {
      *            Requested team type.
      * @return Requested bullet.
      */
-    public static Bullet getBullet(final int positionX,
-                                   final int positionY, final int speed, final int width, final int height, final Team team) {
+    public static Bullet getBullet(final int positionX, final int positionY, final int speed, final int width, final int height, final Team team) {
         Bullet bullet;
+        // team setting
+        // bullet size
         if (!pool.isEmpty()) {
             bullet = pool.iterator().next();
             pool.remove(bullet);
             bullet.setPositionX(positionX - width / 2);
             bullet.setPositionY(positionY);
             bullet.setSpeed(speed);
-            bullet.setSize(width, height);  // bullet size
-            bullet.setTeam(team);	// team setting
         } else {
             bullet = new Bullet(positionX, positionY, width, height, speed);
             bullet.setPositionX(positionX - width / 2);
-            bullet.setSize(width, height); // bullet size
-            bullet.setTeam(team); // team setting
         }
+        bullet.setSize(width, height);  // bullet size
+        bullet.setTeam(team);	// team setting
         bullet.setSprite();
         return bullet;
     }

@@ -1,6 +1,5 @@
 package screen;
 
-import java.awt.*;
 import java.awt.event.KeyEvent;
 import engine.Cooldown;
 import engine.Core;
@@ -12,10 +11,8 @@ import engine.Core;
  */
 
 public class PlayScreen extends Screen {
-    private boolean coopSelected = false;
-    public boolean isCoopSelected() { return coopSelected; }
     private static final int SELECTION_TIME = 200;
-    private Cooldown selectionCooldown;
+    private final Cooldown selectionCooldown;
     private int menuIndex = 0; // 0 = 1P, 1 = 2P, 2 = Back
 
 /**
@@ -56,16 +53,10 @@ public class PlayScreen extends Screen {
             if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
                 switch (this.menuIndex) {
                     case 0: // "1 Player"
-                        this.coopSelected = false;
                         this.returnCode = 2; // go to GameScreen
                         break;
 
-                    case 1: // "2 Players"
-                        this.coopSelected = true;
-                        this.returnCode = 2; // go to GameScreen
-                        break;
-
-                    case 2: // "Back"
+                    case 1: // "Back"
                         this.returnCode = 1; // go back to TitleScreen
                         break;
                 }
@@ -76,21 +67,13 @@ public class PlayScreen extends Screen {
                 int my = inputManager.getMouseY();
 
                 java.awt.Rectangle backBox = drawManager.getBackButtonHitbox(this);
-                java.awt.Rectangle[] modeBoxes = drawManager.getPlayMenuHitboxes(this);
-                java.awt.Rectangle[] allBoxes = {
-                        modeBoxes[0], // 1P
-                        modeBoxes[1],  // 2P
-                        backBox      // Back
-                };
+                java.awt.Rectangle modeBox = drawManager.getPlayMenuHitboxes(this);
+                java.awt.Rectangle[] allBoxes = { modeBox, backBox };
 
                 for  (int i = 0; i < allBoxes.length; i++) {
                     if (allBoxes[i].contains(mx, my)) {
                         this.menuIndex = i;
-                        if (i == 2) this.returnCode = 1; // Back
-                        else {
-                            this.coopSelected = (i == 1); // Mode Select
-                            this.returnCode = 2;
-                        }
+                        this.returnCode = 2;
                         this.isRunning = false;
                         return;
                     }
@@ -107,13 +90,9 @@ public class PlayScreen extends Screen {
         int mx = inputManager.getMouseX();
         int my = inputManager.getMouseY();
 
-        java.awt.Rectangle[] modeBoxes = drawManager.getPlayMenuHitboxes(this);
+        java.awt.Rectangle modeBox = drawManager.getPlayMenuHitboxes(this);
         java.awt.Rectangle backBox = drawManager.getBackButtonHitbox(this);
-        java.awt.Rectangle[] allBoxes = {
-                modeBoxes[0], // 1P
-                modeBoxes[1], // 2P
-                backBox       // Back
-        };
+        java.awt.Rectangle[] allBoxes = { modeBox, backBox };
 
         for (int i = 0; i < allBoxes.length; i++) {
             if (allBoxes[i].contains(mx, my)) {

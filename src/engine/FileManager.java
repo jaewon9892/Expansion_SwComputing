@@ -14,12 +14,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
-
 import engine.DrawManager.SpriteType;
 
 /**
@@ -50,7 +46,7 @@ public final class FileManager {
      *
      * @return Shared instance of FileManager.
      */
-    protected static FileManager getInstance() {
+    static FileManager getInstance() {
         if (instance == null)
             instance = new FileManager();
         return instance;
@@ -67,11 +63,8 @@ public final class FileManager {
      */
     public void loadSprite(final Map<SpriteType, boolean[][]> spriteMap)
             throws IOException {
-        InputStream inputStream = null;
 
-        try {
-            inputStream = DrawManager.class.getClassLoader()
-                    .getResourceAsStream("graphics");
+        try (InputStream inputStream = DrawManager.class.getClassLoader().getResourceAsStream("graphics")) {
             char c;
 
             // Sprite loading.
@@ -80,21 +73,12 @@ public final class FileManager {
                 for (int i = 0; i < sprite.getValue().length; i++)
                     for (int j = 0; j < sprite.getValue()[i].length; j++) {
                         do
-                            c = (char) inputStream.read();
+                            c = (char) Objects.requireNonNull(inputStream).read();
                         while (c != '0' && c != '1');
-
-                        if (c == '1')
-                            sprite.getValue()[i][j] = true;
-                        else
-                            sprite.getValue()[i][j] = false;
+                        sprite.getValue()[i][j] = c == '1';
                     }
                 logger.fine("Sprite " + sprite.getKey() + " loaded.");
             }
-            if (inputStream != null)
-                inputStream.close();
-        } finally {
-            if (inputStream != null)
-                inputStream.close();
         }
     }
 
@@ -118,7 +102,7 @@ public final class FileManager {
             // Font loading.
             inputStream = FileManager.class.getClassLoader()
                     .getResourceAsStream("font.ttf");
-            font = Font.createFont(Font.TRUETYPE_FONT, inputStream).deriveFont(
+            font = Font.createFont(Font.TRUETYPE_FONT, Objects.requireNonNull(inputStream)).deriveFont(
                     size);
         } finally {
             if (inputStream != null)
@@ -148,52 +132,29 @@ public final class FileManager {
      * file.
      *
      * @return Default high scores.
-     * @throws IOException
-     *             In case of loading problems.
      */
-    private List<Score> loadDefaultHighScores() throws IOException {
+    private List<Score> loadDefaultHighScores() {
         List<Score> highScores = new ArrayList<>();
-        InputStream inputStream = null;
-        BufferedReader reader;
-
-        try {
-            inputStream = FileManager.class.getClassLoader().getResourceAsStream("1Pscores.csv");
-            reader = new BufferedReader(new InputStreamReader(inputStream));
-
-            // except first line
-            reader.readLine();
-            String input;
-            while ((input = reader.readLine()) != null) {
-                String[] pair = input.split(",");
-                String name = pair[0], score = pair[1];
-                String mode = pair[2];
-                Score highScore = new Score(name, Integer.parseInt(score), mode);
-                highScores.add(highScore);
-            }
-        } finally {
-            if (inputStream != null)
-                inputStream.close();
-        }
-
+        highScores.add(new Score("Selene", 9440));
+        highScores.add(new Score("and", 1557));
+        highScores.add(new Score("Luna", 0));
         return highScores;
     }
 
     /**
      * Loads high scores from file, and returns a sorted list of pairs score -
      * value.
-     * @param mode
-     *      get game mode 1P/2P.
      * @return Sorted list of scores - players.
      * @throws IOException
      *             In case of loading problems.
      */
-    public List<Score> loadHighScores(String mode) throws IOException {
+    public List<Score> loadHighScores() throws IOException {
         List<Score> highScores = new ArrayList<>();
-        InputStream inputStream = null;
+        InputStream inputStream;
         BufferedReader bufferedReader = null;
 
         try {
-            String scoresPath = getFilePath(mode+"scores.csv");
+            String scoresPath = getFilePath("scores.csv");
 
             File scoresFile = new File(scoresPath);
             inputStream = new FileInputStream(scoresFile);
@@ -205,7 +166,7 @@ public final class FileManager {
             while ((input = bufferedReader.readLine()) != null) {
                 String[] pair = input.split(",");
                 String name = pair[0], score = pair[1];
-                Score highScore = new Score(name, Integer.parseInt(score), mode);
+                Score highScore = new Score(name, Integer.parseInt(score));
                 highScores.add(highScore);
             }
         } catch (FileNotFoundException e) {
@@ -226,23 +187,18 @@ public final class FileManager {
      *
      * @param highScores
      *            High scores to save.
-     * @param mode
-     *            get game mode 1P/2P.
      *
      * @throws IOException
      *             In case of loading problems.
      */
-    public void saveHighScores(final List<Score> highScores, String mode) throws IOException {
-        OutputStream outputStream = null;
+    public void saveHighScores(final List<Score> highScores) throws IOException {
+        OutputStream outputStream;
         BufferedWriter bufferedWriter = null;
 
         try {
-            String scoresPath = getFilePath(mode+"scores.csv");
+            String scoresPath = getFilePath("scores.csv");
 
             File scoresFile = new File(scoresPath);
-
-            if (!scoresFile.exists())
-                scoresFile.createNewFile();
 
             outputStream = new FileOutputStream(scoresFile);
             bufferedWriter = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
@@ -285,7 +241,6 @@ public final class FileManager {
                     String[] playRecord = line.split(",");
                     if (playRecord.length < 3) continue; // Minimum fields: mode, userName, at least 1 achievement
 
-                    String mode = playRecord[0].trim(); // Mode: "1" or "2"
                     String name = playRecord[1].trim();
 
                     if (name.equals(userName)) {
@@ -324,11 +279,8 @@ public final class FileManager {
      * @param userName             The name of the user.
      * @param unlockedAchievement  A list of booleans representing which achievements have been unlocked.
      */
-    public void unlockAchievement(String userName, List<Boolean> unlockedAchievement, String mode) {
+    public void unlockAchievement(String userName, List<Boolean> unlockedAchievement) {
         List<String[]> records = new ArrayList<>();
-
-        // Extract only numeric part from mode string (e.g., "1P" → "1", "2P" → "2")
-        String numericMode = mode.replaceAll("[^0-9]", "");
 
         try {
             String achievementPath = getFilePath("achievement.csv");
@@ -348,11 +300,10 @@ public final class FileManager {
                         continue;
                     }
 
-                    String currentMode = playRecord[0].trim();
                     String name = playRecord[1].trim();
 
-                    // ✅ Match both user name and mode to consider it the same record
-                    if (name.equals(userName) && currentMode.equals(numericMode)) {
+                    // ✅ Match both username and mode to consider it the same record
+                    if (name.equals(userName)) {
                         found = true;
                         Logger.getLogger(getClass().getName()).info("Achievement has been updated.");
                         for (int i = 2; i < playRecord.length; i++) {
@@ -369,8 +320,7 @@ public final class FileManager {
                 if (!found) {
                     Logger.getLogger(getClass().getName()).info("User not found, creating new record.");
                     String[] newRecord = new String[unlockedAchievement.size() + 2];
-                    newRecord[0] = numericMode; // Store numeric mode only
-                    newRecord[1] = userName;
+                    newRecord[0] = userName;
                     for (int i = 0; i < unlockedAchievement.size(); i++) {
                         newRecord[i + 2] = unlockedAchievement.get(i) ? "1" : "0";
                     }

@@ -42,8 +42,8 @@ public class Ship extends Entity {
     }
 
     /** Game state and Ship type **/
-    private GameState gameState;
-    private ShipType type;
+    private final GameState gameState;
+    private final ShipType type;
 
     // Ship properties (vary by type)
     private int moveSpeed = BASE_SPEED;
@@ -53,12 +53,8 @@ public class Ship extends Entity {
     private int bulletHeight = BASE_BULLET_HEIGHT;
 
     /** Cooldowns */
-    private Cooldown shootingCooldown;
-    private Cooldown destructionCooldown;
-
-    // Identify player in index: 0 = P1, 1 = P2
-    private int playerIndex = 0;
-
+    private final Cooldown shootingCooldown;
+    private final Cooldown destructionCooldown;
     private int Y;
     private int hits;
 
@@ -76,8 +72,7 @@ public class Ship extends Entity {
      * @param gameState
      *                  Game state reference (can be null)
      */
-    public Ship(final int positionX, final int positionY, final Team team,
-                final ShipType type, final GameState gameState) {
+    public Ship(final int positionX, final int positionY, final Team team, final ShipType type, final GameState gameState) {
         super(positionX, positionY, SHIP_WIDTH, SHIP_HEIGHT, Color.GREEN);
 
         this.gameState = gameState;
@@ -88,12 +83,6 @@ public class Ship extends Entity {
 
         this.shootingCooldown = Core.getCooldown(this.shootingInterval);
         this.destructionCooldown = Core.getCooldown(DESTRUCTION_COOLDOWN);
-
-        // apply entity
-        Team playerID = (team != null) ? team : Team.PLAYER1;
-        this.setTeam(playerID);
-        this.playerIndex = (playerID == Team.PLAYER1) ? 0 : (playerID == Team.PLAYER2) ? 1 : 0;
-
         this.Y = positionY;
         this.hits = 0;
     }
@@ -211,12 +200,6 @@ public class Ship extends Entity {
      */
     public final int getSpeed() { return this.moveSpeed; }
 
-    // 2P mode: adding playerIndex getter and setter
-    public final int getPlayerId() { return this.playerIndex + 1; }
-
-    public void setPlayerId(int id) { this.playerIndex = id -1; }
-
-
     /**
      * Fires bullets based on ship type.
      */
@@ -242,9 +225,7 @@ public class Ship extends Entity {
         int speedMultiplier = getBulletSpeedMultiplier();
         int currentBulletSpeed = this.bulletSpeed * speedMultiplier;
 
-        Bullet bullet = BulletPool.getBullet(x, y, currentBulletSpeed,
-                this.bulletWidth, this.bulletHeight, this.getTeam());
-        bullet.setOwnerPlayerId(this.getPlayerId());
+        Bullet bullet = BulletPool.getBullet(x, y, currentBulletSpeed, this.bulletWidth, this.bulletHeight, this.getTeam());
         bullets.add(bullet);
     }
 
@@ -257,13 +238,13 @@ public class Ship extends Entity {
      *                              list of active effects
      */
     private boolean hasTripleShotEffect() {
-        return gameState != null && gameState.hasEffect(playerIndex, TRIPLESHOT);
+        return gameState != null && gameState.hasEffect(TRIPLESHOT);
     }
 
     private int getBulletSpeedMultiplier() {
         if (gameState == null) return 1;
 
-        Integer effectValue = gameState.getEffectValue(playerIndex, BULLETSPEEDUP);
+        Integer effectValue = gameState.getEffectValue(BULLETSPEEDUP);
         if (effectValue != null) {
             Core.getLogger().info("[Ship] Item effect: Faster Bullets");
             return effectValue;
@@ -280,7 +261,7 @@ public class Ship extends Entity {
      */
     private void shootTripleShot(final Set<Bullet> bullets, final int centerX, final int bulletY) {
         Core.getLogger().info("[Ship] Item effect: TRIPLESHOT");
-        Integer TRIPLE_SHOT_OFFSET = gameState.getEffectValue(playerIndex, TRIPLESHOT);
+        Integer TRIPLE_SHOT_OFFSET = gameState.getEffectValue(TRIPLESHOT);
 
         addBullet(bullets, centerX, bulletY);
         addBullet(bullets, centerX - TRIPLE_SHOT_OFFSET, bulletY);

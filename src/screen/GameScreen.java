@@ -4,7 +4,6 @@ import java.awt.event.KeyEvent;
 import java.util.HashSet;
 import java.util.Set;
 
-import Animations.Explosion;
 import engine.Cooldown;
 import engine.Core;
 import engine.GameSettings;
@@ -59,7 +58,7 @@ public class GameScreen extends Screen {
     private EnemyShipFormation enemyShipFormation;
     private EnemyShip enemyShipSpecial;
     /** Formation of player ships. */
-    private Ship[] ships = new Ship[GameState.NUM_PLAYERS];
+    private Ship ship;
     /** Minimum time between bonus ship appearances. */
     private Cooldown enemyShipSpecialCooldown;
     /** Time until bonus ship explosion disappears. */
@@ -83,12 +82,6 @@ public class GameScreen extends Screen {
     private Cooldown pauseCooldown;
     private Cooldown returnMenuCooldown;
 
-    private int score;
-    private int lives;
-    private int bulletsShot;
-    private int shipsDestroyed;
-    private Ship ship;
-
     /** checks if player took damage
      * 2025-10-02 add new variable
      * */
@@ -97,8 +90,7 @@ public class GameScreen extends Screen {
 
     private final GameState state;
 
-    private Ship.ShipType shipTypeP1;
-    private Ship.ShipType shipTypeP2;
+    private Ship.ShipType shipType;
     /**
      * Constructor, establishes the properties of the screen.
      *
@@ -114,31 +106,22 @@ public class GameScreen extends Screen {
      *                     Screen height.
      * @param fps
      *                     Frames per second, frame rate at which the game is run.
-     * @param shipTypeP1
-     *                     Player 1's ship type.
-     * @param shipTypeP2
-     *                     Player 2's ship type.
+     * @param shipType
+     *                     Player's ship type.
      * @param achievementManager
      * 			               Achievement manager instance used to track and save player achievements.
      * 			  2025-10-03 add generator parameter and comment
      */
     public GameScreen(final GameState gameState,
                       final GameSettings gameSettings, final boolean bonusLife,
-                      final int width, final int height, final int fps, final Ship.ShipType shipTypeP1, final Ship.ShipType shipTypeP2, final AchievementManager achievementManager) {
+                      final int width, final int height, final int fps, final Ship.ShipType shipType, final AchievementManager achievementManager) {
         super(width, height, fps);
 
         this.state = gameState;
         this.gameSettings = gameSettings;
         this.bonusLife = bonusLife;
-        this.shipTypeP1 = shipTypeP1;
-        this.shipTypeP2 = shipTypeP2;
+        this.shipType = shipType;
         this.level = gameState.getLevel();
-        this.score = gameState.getScore();
-        this.lives = gameState.getLivesRemaining();
-        if (this.bonusLife)
-            this.lives++;
-        this.bulletsShot = gameState.getBulletsShot();
-        this.shipsDestroyed = gameState.getShipsDestroyed();
 
         // for check Achievement 2025-10-02 add
         this.achievementManager = achievementManager;
@@ -154,15 +137,8 @@ public class GameScreen extends Screen {
         this.highScoreNotified = false;
         this.highScoreNoticeStartTime = 0;
 
-        // 2P: bonus life adds to team pool + singleplayer mode
-        if (this.bonusLife) {
-            if (state.isSharedLives()) {
-                state.addTeamLife(1); // two player
-            } else {
-                // 1P legacy: grant to P1
-                state.addLife(0, 1);  // singleplayer
-            }
-        }
+        if (this.bonusLife)
+            state.addLife(1);
       // [ADD] ensure achievementManager is not null for popup system
 		if (this.achievementManager == null) this.achievementManager = new AchievementManager();
     }
@@ -189,18 +165,7 @@ public class GameScreen extends Screen {
         enemyShipFormation = new EnemyShipFormation(this.gameSettings);
         enemyShipFormation.attach(this);
 
-        // 2P mode: create both ships, tagged to their respective teams
-        this.ships[0] = new Ship(this.width / 2 - 60, this.height - 30, Entity.Team.PLAYER1, shipTypeP1, this.state); // P1
-        this.ships[0].setPlayerId(1);
-
-        // only allowing second ship to spawn when 2P mode is chosen
-        if (state.isCoop()) {
-            this.ships[1] = new Ship(this.width / 2 + 60, this.height - 30, Entity.Team.PLAYER2, shipTypeP2, this.state); // P2
-
-            this.ships[1].setPlayerId(2);
-        } else {
-            this.ships[1] = null; // ensuring there's no P2 ship in 1P mode
-        }
+        this.ship = new Ship(this.width / 2 - 60, this.height - 30, Entity.Team.PLAYER, shipType, this.state); // P1
 
         this.enemyShipSpecialCooldown = Core.getVariableCooldown(BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE);
         this.enemyShipSpecialCooldown.reset();
@@ -232,8 +197,7 @@ public class GameScreen extends Screen {
     public final int run() {
         super.run();
 
-        // 2P mode: award bonus score for remaining TEAM lives
-        state.addScore(0, LIFE_SCORE * state.getLivesRemaining());
+        state.addScore(LIFE_SCORE * state.getLives());
 
         // Stop all music on exiting this screen
         SoundManager.stopAllMusic();
@@ -278,121 +242,91 @@ public class GameScreen extends Screen {
 
         if (!this.isPaused) {
             if (this.inputDelay.checkFinished() && !this.levelFinished) {
+                boolean moveRight, moveLeft, fire;
+                moveRight = inputManager.isP1RightPressed();
+                moveLeft = inputManager.isP1LeftPressed();
+                fire = inputManager.isP1ShootPressed();
 
-                // Per-player input/move/shoot
-                for (int p = 0; p < GameState.NUM_PLAYERS; p++) {
-                    Ship ship = this.ships[p];
+                boolean isRightBorder = ship.getPositionX() + ship.getWidth() + ship.getSpeed() > this.width - 1;
 
-                    if (ship == null || ship.isDestroyed())
-                        continue;
+                boolean isLeftBorder = ship.getPositionX() - ship.getSpeed() < 1;
 
-                    boolean moveRight, moveLeft, fire;
-                    // Get player key input status
-                    if (p == 0) {
-                        moveRight = inputManager.isP1RightPressed();
-                        moveLeft = inputManager.isP1LeftPressed();
-                        fire = inputManager.isP1ShootPressed();
-                    } else {
-                        moveRight = inputManager.isP2RightPressed();
-                        moveLeft = inputManager.isP2LeftPressed();
-                        fire = inputManager.isP2ShootPressed();
-                    }
+                if (moveRight && !isRightBorder)
+                    ship.moveRight();
+                if (moveLeft && !isLeftBorder)
+                    ship.moveLeft();
 
-                    boolean isRightBorder = ship.getPositionX() + ship.getWidth() + ship.getSpeed() > this.width - 1;
+                fire = inputManager.isKeyDown(KeyEvent.VK_SPACE);
 
-                    boolean isLeftBorder = ship.getPositionX() - ship.getSpeed() < 1;
-
-                    if (moveRight && !isRightBorder)
-                        ship.moveRight();
-                    if (moveLeft && !isLeftBorder)
-                        ship.moveLeft();
-
-                    fire = (p == 0)
-                            ? inputManager.isKeyDown(KeyEvent.VK_SPACE)
-                            : inputManager.isKeyDown(KeyEvent.VK_ENTER);
-
-                        if (fire && ship.shoot(this.bullets)) {
-                            SoundManager.playOnce("sound/shoot.wav");
-
-                        state.incBulletsShot(p); // 2P mode: increments per-player bullet shots
-
-                    }
+                if (fire && ship.shoot(this.bullets)) {
+                    SoundManager.playOnce("sound/shoot.wav");
+                    state.incBulletsShot(); // 2P mode: increments per-player bullet shots
                 }
-
-                // Special ship lifecycle
-                if (this.enemyShipSpecial != null) {
-                    if (!this.enemyShipSpecial.isDestroyed())
-                        this.enemyShipSpecial.move(2, 0);
-                    else if (this.enemyShipSpecialExplosionCooldown.checkFinished())
-                        this.enemyShipSpecial = null;
-                }
-                if (this.enemyShipSpecial == null && this.enemyShipSpecialCooldown.checkFinished()) {
-                    this.enemyShipSpecial = new EnemyShip();
-                    this.enemyShipSpecialCooldown.reset();
-                    SoundManager.playLoop("sound/special_ship_sound.wav");
-                    this.logger.info("A special ship appears");
-                }
-                if (this.enemyShipSpecial != null && this.enemyShipSpecial.getPositionX() > this.width) {
+            }
+            // Special ship lifecycle
+            if (this.enemyShipSpecial != null) {
+                if (!this.enemyShipSpecial.isDestroyed())
+                    this.enemyShipSpecial.move(2, 0);
+                else if (this.enemyShipSpecialExplosionCooldown.checkFinished())
                     this.enemyShipSpecial = null;
-                    SoundManager.stop();
-                    this.logger.info("The special ship has escaped");
-                }
-
-                // Update ships & enemies
-                for (Ship s : this.ships)
-                    if (s != null)
-                        s.update();
-
-                this.enemyShipFormation.update();
-                int bulletsBefore = this.bullets.size();
-                this.enemyShipFormation.shoot(this.bullets);
-                if (this.bullets.size() > bulletsBefore) {
-                    // At least one enemy bullet added
-                    SoundManager.playOnce("sound/shoot_enemies.wav");
-                }
             }
-
-
-            manageCollisions();
-            cleanBullets();
-
-            // Item Entity Code
-            cleanItems();
-            manageItemPickups();
-
-            // check active item affects
-            state.updateEffects();
-            drawManager.setLastLife(state.getLivesRemaining() == 1);
-		    draw();
-
-            if (!sessionHighScoreNotified && this.state.getScore() > this.topScore) {
-                sessionHighScoreNotified = true;
-                this.highScoreNotified = true;
-                this.highScoreNoticeStartTime = System.currentTimeMillis();
+            if (this.enemyShipSpecial == null && this.enemyShipSpecialCooldown.checkFinished()) {
+                this.enemyShipSpecial = new EnemyShip();
+                this.enemyShipSpecialCooldown.reset();
+                SoundManager.playLoop("sound/special_ship_sound.wav");
+                this.logger.info("A special ship appears");
             }
-
-            // End condition: formation cleared or TEAM lives exhausted.
-            if ((this.enemyShipFormation.isEmpty() || !state.teamAlive()) && !this.levelFinished) {
-                // The object managed by the object pool pattern must be recycled at the end of the level.
-                BulletPool.recycle(this.bullets);
-                this.bullets.removeAll(this.bullets);
-                ItemPool.recycle(items);
-                this.items.removeAll(this.items);
-
-                this.levelFinished = true;
-                this.screenFinishedCooldown.reset();
-
-		    }
-
-            if (this.levelFinished && this.screenFinishedCooldown.checkFinished()) {
-                if (!achievementManager.hasPendingToasts()) {
-                    this.isRunning = false;
-                }
+            if (this.enemyShipSpecial != null && this.enemyShipSpecial.getPositionX() > this.width) {
+                this.enemyShipSpecial = null;
+                SoundManager.stop();
+                this.logger.info("The special ship has escaped");
             }
+            // Update ships & enemies
+            ship.update();
 
-		    if (this.achievementManager != null) this.achievementManager.update();
-	    }
+            this.enemyShipFormation.update();
+            int bulletsBefore = this.bullets.size();
+            this.enemyShipFormation.shoot(this.bullets);
+            if (this.bullets.size() > bulletsBefore) {
+                // At least one enemy bullet added
+                SoundManager.playOnce("sound/shoot_enemies.wav");
+            }
+        }
 
+        manageCollisions();
+        cleanBullets();
+
+        // Item Entity Code
+        cleanItems();
+        manageItemPickups();
+
+        // check active item affects
+        state.updateEffects();
+        drawManager.setLastLife(state.getLives() == 1);
+        draw();
+
+        if (!sessionHighScoreNotified && this.state.getScore() > this.topScore) {
+            sessionHighScoreNotified = true;
+            this.highScoreNotified = true;
+            this.highScoreNoticeStartTime = System.currentTimeMillis();
+        }
+        // End condition: formation cleared or TEAM lives exhausted.
+        if ((this.enemyShipFormation.isEmpty() || !state.teamAlive()) && !this.levelFinished) {
+            // The object managed by the object pool pattern must be recycled at the end of the level.
+            BulletPool.recycle(this.bullets);
+            this.bullets.removeAll(this.bullets);
+            ItemPool.recycle(items);
+            this.items.removeAll(this.items);
+            this.levelFinished = true;
+            this.screenFinishedCooldown.reset();
+        }
+
+        if (this.levelFinished && this.screenFinishedCooldown.checkFinished()) {
+            if (!achievementManager.hasPendingToasts()) {
+                this.isRunning = false;
+            }
+        }
+        if (this.achievementManager != null) this.achievementManager.update();
         checkAchievement();
         draw();
     }
@@ -406,9 +340,7 @@ public class GameScreen extends Screen {
         drawManager.drawExplosions();
         drawManager.updateGameSpace();
 
-        for (Ship s : this.ships)
-            if (s != null)
-                drawManager.drawEntity(s, s.getPositionX(), s.getPositionY());
+        drawManager.drawEntity(ship, ship.getPositionX(), ship.getPositionY());
 
         if (this.enemyShipSpecial != null)
             drawManager.drawEntity(this.enemyShipSpecial,
@@ -428,7 +360,7 @@ public class GameScreen extends Screen {
 
 		// Aggregate UI (team score & team lives)
 		drawManager.drawScore(this, state.getScore());
-    drawManager.drawLives(this, state.getLivesRemaining(),state.isCoop() );
+        drawManager.drawLives(this, state.getLives());
 		drawManager.drawCoins(this,  state.getCoins()); // ADD THIS LINE - 2P mode: team total
         // 2P mode: setting per-player coin count
 //        if (state.isCoop()) {
@@ -508,15 +440,11 @@ public class GameScreen extends Screen {
     private void manageItemPickups() {
         Set<Item> collected = new HashSet<Item>();
         for (Item item : this.items) {
-
-            for(Ship ship: this.ships) {
-                if(ship == null) continue;
-                if (checkCollision(item, ship) && !collected.contains(item)) {
-                    collected.add(item);
-                    this.logger.info("Player " + ship.getPlayerId() + " picked up item: " + item.getType());
-                    SoundManager.playOnce("sound/hover.wav");
-                    item.applyEffect(getGameState(), ship.getPlayerId());
-                }
+            if (checkCollision(item, ship) && !collected.contains(item)) {
+                collected.add(item);
+                this.logger.info("Player " + " picked up item: " + item.getType());
+                SoundManager.playOnce("sound/hover.wav");
+                item.applyEffect(getGameState());
             }
         }
         this.items.removeAll(collected);
@@ -532,37 +460,27 @@ public class GameScreen extends Screen {
         for (Bullet bullet : this.bullets) {
             if (bullet.getSpeed() > 0) {
                 // Enemy bullet vs both players
+                if (ship != null && !ship.isDestroyed() && checkCollision(bullet, ship) && !this.levelFinished) {
+                    recyclable.add(bullet);
+                    drawManager.triggerExplosion(ship.getPositionX(), ship.getPositionY(), false, state.getLives() == 1);
+                    ship.addHit();
 
-                for (int p = 0; p < GameState.NUM_PLAYERS; p++) {
-                    Ship ship = this.ships[p];
-                    if (ship != null && !ship.isDestroyed()
-                            && checkCollision(bullet, ship) && !this.levelFinished) {
-                        recyclable.add(bullet);
+                    ship.destroy(); // explosion/respawn handled by Ship.update()
+                    SoundManager.playOnce("sound/explosion.wav");
+                    state.decLife(); // decrement shared/team lives by 1
 
+                    // Record damage for Survivor achievement check
+                    this.tookDamageThisLevel = true;
 
-                        drawManager.triggerExplosion(ship.getPositionX(), ship.getPositionY(), false, state.getLivesRemaining() == 1);
-                        ship.addHit();
+                    drawManager.setLastLife(state.getLives() == 1);
+                    drawManager.setDeath(state.getLives() == 0);
 
-                        ship.destroy(); // explosion/respawn handled by Ship.update()
-                        SoundManager.playOnce("sound/explosion.wav");
-                        state.decLife(p); // decrement shared/team lives by 1
+                    this.logger.info("Hit on player " + ", team lives now: " + state.getLives());
+                    break;
 
-                        // Record damage for Survivor achievement check
-                        this.tookDamageThisLevel = true;
-
-                        drawManager.setLastLife(state.getLivesRemaining() == 1);
-                        drawManager.setDeath(state.getLivesRemaining() == 0);
-
-						this.logger.info("Hit on player " + (p + 1) + ", team lives now: " + state.getLivesRemaining());
-						break;
-					}
 				}
 			} else {
 				// Player bullet vs enemies
-				// map Bullet owner id (1 or 2) to per-player index (0 or 1)
-				final int ownerId = bullet.getOwnerPlayerId(); // 1 or 2 (0 if unset)
-				final int pIdx = (ownerId == 2) ? 1 : 0; // default to P1 when unset
-
                 boolean finalShip = this.enemyShipFormation.lastShip();
 
                 // Check collision with formation enemies
@@ -573,11 +491,11 @@ public class GameScreen extends Screen {
 
                         if (enemyShip.isDestroyed()) {
                             int points = enemyShip.getPointValue();
-                            state.addCoins(pIdx, enemyShip.getCoinValue()); // 2P mode: modified to per-player coins
+                            state.addCoins(enemyShip.getCoinValue()); // 2P mode: modified to per-player coins
 
                             drawManager.triggerExplosion(enemyShip.getPositionX(), enemyShip.getPositionY(), true, finalShip);
-                            state.addScore(pIdx, points); // 2P mode: modified to add to P1 score for now
-                            state.incShipsDestroyed(pIdx);
+                            state.addScore(points); // 2P mode: modified to add to P1 score for now
+                            state.incShipsDestroyed();
 
                             // obtain drop from ItemManager (may return null)
                             Item drop = engine.ItemManager.getInstance().obtainDrop(enemyShip);
@@ -594,15 +512,13 @@ public class GameScreen extends Screen {
                     }
                 }
 
-                if (this.enemyShipSpecial != null
-                        && !this.enemyShipSpecial.isDestroyed()
-                        && checkCollision(bullet, this.enemyShipSpecial)) {
+                if (this.enemyShipSpecial != null && !this.enemyShipSpecial.isDestroyed() && checkCollision(bullet, this.enemyShipSpecial)) {
                     int points = this.enemyShipSpecial.getPointValue();
 
-                    state.addCoins(pIdx, this.enemyShipSpecial.getCoinValue()); // 2P mode: modified to per-player coins
+                    state.addCoins(this.enemyShipSpecial.getCoinValue()); // 2P mode: modified to per-player coins
 
-                    state.addScore(pIdx, points);
-                    state.incShipsDestroyed(pIdx); // 2P mode: modified incrementing ships destroyed
+                    state.addScore(points);
+                    state.incShipsDestroyed(); // 2P mode: modified incrementing ships destroyed
 
 					this.enemyShipSpecial.destroy();
                     SoundManager.stop();
@@ -658,21 +574,14 @@ public class GameScreen extends Screen {
         // Clear
         if (levelFinished && this.enemyShipFormation.isEmpty() && state.getLevel()==5) {
             achievementManager.unlock("Clear");
-            float p1Acc = state.getBulletsShot(0) > 0 ? (float) state.getShipsDestroyed(0) / state.getBulletsShot(0)*100 : 0f;
-            float p2Acc = state.getBulletsShot(1) > 0 ? (float) state.getShipsDestroyed(1) / state.getBulletsShot(1)*100 : 0f;
+            float Acc = state.getBulletsShot() > 0 ? (float) state.getShipsDestroyed() / state.getBulletsShot()*100 : 0f;
             // Survivor
             if(!this.tookDamageThisLevel){
                 achievementManager.unlock("Survivor");
             }
             //Sharpshooter
-            if(p1Acc>=80){
-                //1p
+            if(Acc>=80)
                 achievementManager.unlock("Sharpshooter");
-                //coop
-                if(p2Acc>=80){
-                    achievementManager.unlock("Sharpshooter");
-                }
-            }
         }
 
         //50 Bullets

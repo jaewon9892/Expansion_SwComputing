@@ -17,7 +17,7 @@ import engine.ItemEffect;
 public class Item extends Entity {
 
     /** Logger instance for logging purposes. */
-    private Logger logger;
+    private final Logger logger;
 
     /** Type of Item. */
     private String type;
@@ -81,16 +81,13 @@ public class Item extends Entity {
     /**
      * Applies the effect of the Item to the player.
      *
-     * @param gameState
-     *            current game state instance.
-     * @param playerId
-     *            ID of the player to apply the effect to.
+     * @param gameState current game state instance.
      */
-    public boolean applyEffect(final GameState gameState, final int playerId) {
+    public void applyEffect(final GameState gameState) {
         ItemDB itemDB = new ItemDB();
         ItemData data = itemDB.getItemData(this.type);
 
-        if (data == null) return false;
+        if (data == null) return;
 
         int value = data.getEffectValue();
         int duration = data.getEffectDuration();
@@ -101,38 +98,35 @@ public class Item extends Entity {
         * duration item will apply if enough coins*/
         switch (this.type) {
             case "COIN":
-                ItemEffect.applyCoinItem(gameState, playerId, value);
+                ItemEffect.applyCoinItem(gameState, value);
                 applied = true;
                 break;
             case "HEAL":
-                ItemEffect.applyHealItem(gameState, playerId, value);
+                ItemEffect.applyHealItem(gameState, value);
                 applied = true;
                 break;
             case "SCORE":
-                ItemEffect.applyScoreItem(gameState, playerId, value);
+                ItemEffect.applyScoreItem(gameState, value);
                 applied = true;
                 break;
             case "TRIPLESHOT":
-                applied = ItemEffect.applyTripleShot(gameState, playerId, value, duration,cost);
+                applied = ItemEffect.applyTripleShot(gameState, value, duration,cost);
                 break;
             case "SCOREBOOST":
-                applied = ItemEffect.applyScoreBoost(gameState, playerId, value, duration,cost);
+                applied = ItemEffect.applyScoreBoost(gameState, value, duration,cost);
                 break;
             case "BULLETSPEEDUP":
-                applied = ItemEffect.applyBulletSpeedUp(gameState, playerId, value, duration, cost);
+                applied = ItemEffect.applyBulletSpeedUp(gameState, value, duration, cost);
                 break;
             default:
                 this.logger.warning("[Item]: No ItemEffect for type " + this.type);
-                applied = false;
                 break;
         }
         if (!applied) {
             // Player couldn't afford the item (or other failure).
-            logger.info("[Item]: Player " + playerId + " couldn't afford " + this.type + " (cost=" + cost + ")");
+            logger.info("[Item]: Player " + " couldn't afford " + this.type + " (cost=" + cost + ")");
         }
-
-        return applied;
-    };
+    }
 
     /**
      * Setter of the speed of the Item.

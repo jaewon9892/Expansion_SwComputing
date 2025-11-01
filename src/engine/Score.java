@@ -11,55 +11,42 @@ import java.util.Arrays;
 public class Score implements Comparable<Score> {
 
     /** Player's name. */
-    private String name;
+    private final String name;
     /** Score points. */
-    private int score;
+    private final int score;
 
     /** per-player breakdown */
-    private int[] playerScores;
-    private int[] playerBullets;
-    private int[] playerKills;
+    private int playerScores;
+    private int playerBullets;
+    private int playerKills;
 
 
     /**level reached and lives left */
     private int levelReached;
     private int livesRemaining;
 
-    /** 1P/2P mode*/
-    private String mode;
     /**
      * Constructor.
      *
      * @param name  Player name, three letters.
      * @param score Player score.
      */
-    public Score(final String name, final int score, final String mode) {
+    public Score(final String name, final int score) {
         this.name = name;
         this.score = score;
-        this.mode = mode; // add 1P/2P mode
     }
 
     /**
      * NEW Constructor: (team co-op)
      */
-    public Score(final String name, final GameState gs, final String mode) {
+    public Score(final String name, final GameState gs) {
         this.name = name;
         this.score = gs.getScore();
         this.levelReached = gs.getLevel();
-        this.livesRemaining = gs.getLivesRemaining();
-        this.mode = mode; // add 1P/2P mode
-
-        int n = GameState.NUM_PLAYERS;
-        this.playerScores = new int[n];
-        this.playerBullets = new int[n];
-        this.playerKills = new int[n];
-
-
-        for (int i = 0; i < n; i++) {
-            this.playerScores[i] = gs.getScore(i);
-            this.playerBullets[i] = gs.getBulletsShot(i);
-            this.playerKills[i] = gs.getShipsDestroyed(i);
-        }
+        this.livesRemaining = gs.getLives();
+        this.playerScores = gs.getScore();
+        this.playerBullets = gs.getBulletsShot();
+        this.playerKills = gs.getShipsDestroyed();
     }
 
     /**
@@ -80,10 +67,6 @@ public class Score implements Comparable<Score> {
         return this.score;
     }
 
-    /** Getter for mode*/
-    public String getMode() {
-        return this.mode;
-    }
     /**
      * Getter for:
      * level reached
@@ -100,16 +83,14 @@ public class Score implements Comparable<Score> {
     }
 
     // Per-player (null-safe for legacy scores)
-    public final int getPlayerScore(int pid) {
-        return playerScores != null ? playerScores[pid] : 0;
+    public final int getPlayerScore() {
+        return playerScores;
     }
 
-    public final int getPlayerBullets(int pid) {
-        return playerBullets != null ? playerBullets[pid] : 0;
-    }
+    public final int getPlayerBullets() { return playerBullets; }
 
-    public final int getPlayerKills(int pid) {
-        return playerKills != null ? playerKills[pid] : 0;
+    public final int getPlayerKills() {
+        return playerKills;
     }
 
     /**
@@ -129,7 +110,7 @@ public class Score implements Comparable<Score> {
     @Override
     public String toString() {
         return "Score{name='" + name + "', score=" + score +
-                ", perPlayer=" + Arrays.toString(playerScores) + "}";
+                ", perPlayer=" + playerScores + "}";
     }
 
 }

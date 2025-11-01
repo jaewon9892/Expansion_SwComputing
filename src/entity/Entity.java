@@ -25,9 +25,8 @@ public class Entity {
     /** Sprite type assigned to the entity. */
     protected SpriteType spriteType;
 
-    // 2P mode: adding team for multiplayer
     public enum Team {
-        PLAYER1, PLAYER2, ENEMY, NEUTRAL
+        PLAYER, ENEMY, NEUTRAL
     }
 
     // every entity knows their team - possibility for friendly-fire?
@@ -134,7 +133,6 @@ public class Entity {
         return this.height;
     }
 
-    // 2P mode: adding getters for Team
     // TODO: add team-based canHit() later - friendly fire?
     public Team getTeam() {
         return team;
@@ -143,5 +141,4 @@ public class Entity {
     public void setTeam(Team t) {
         this.team = (t == null ? Team.NEUTRAL : t);
     }
-
 }

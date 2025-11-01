@@ -202,7 +202,7 @@ public class TitleScreen extends Screen {
 
 		//pass hoverOption for menu highlights respond to mouse hover
 		drawManager.drawTitle(this);
-		drawManager.drawMenu(this, this.menuIndex, hoverOption, this.menuIndex); // 2P mode: using menu index for highlighting
+		drawManager.drawMenu(this, hoverOption, this.menuIndex); // 2P mode: using menu index for highlighting
 
 		drawManager.completeDrawing(this);
 	}

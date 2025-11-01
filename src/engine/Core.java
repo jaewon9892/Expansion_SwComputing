@@ -1,7 +1,6 @@
 package engine;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
@@ -9,7 +8,6 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import screen.*;
 import entity.Ship;
 import screen.*;
 
@@ -28,7 +26,7 @@ public final class Core {
 
     /** Lives per player (used to compute team pool in shared mode). */
     private static final int MAX_LIVES = 3;
-    private static final int EXTRA_LIFE_FRECUENCY = 3;
+    private static final int EXTRA_LIFE_FREQUENCY = 3;
 
     /** Frame to draw the screen on. */
     private static Frame frame;
@@ -69,15 +67,10 @@ public final class Core {
         gameSettings = GameSettings.getGameSettings();
         NUM_LEVELS = gameSettings.size(); // Initialize total number of levels
 
-
-        // 2P mode: modified to null to allow for switch between 2 modes
-        GameState gameState = null;
-        boolean coopSelected = false; // false = 1P, true = 2P
-
+        GameState gameState;
         int returnCode = 1;
 
-        Ship.ShipType shipTypeP1 = Ship.ShipType.NORMAL; // P1 Ship Type
-        Ship.ShipType shipTypeP2 = Ship.ShipType.NORMAL; // P2 Ship Type
+        Ship.ShipType shipType = Ship.ShipType.NORMAL; // Ship Type
         do {
             // Game & score.
             AchievementManager achievementManager = new AchievementManager(); // add 1P/2P achievement manager
@@ -89,31 +82,21 @@ public final class Core {
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing title screen.");
 
-                    // 2P mode: reading the mode which user chose from TitleScreen
-                    // (edit) TitleScreen to PlayScreen
                     if (returnCode == 2) {
                         currentScreen = new PlayScreen(width, height, FPS);
                         returnCode = frame.setScreen(currentScreen);
-
-                        coopSelected = ((PlayScreen) currentScreen).isCoopSelected();
                     }
 
                     break;
 
                 case 2:
-                    // 2P mode: building gameState now using user choice
-                    gameState = new GameState(1, MAX_LIVES, coopSelected, 0);
+                    gameState = new GameState(1, MAX_LIVES, 0);
 
                     do {
                         // Extra life this level? Give it if team pool is below cap.
-                        int teamCap = gameState.isCoop() ? (MAX_LIVES * GameState.NUM_PLAYERS) : MAX_LIVES;
-                        boolean bonusLife = gameState.getLevel() % EXTRA_LIFE_FRECUENCY == 0
-                                && gameState.getLivesRemaining() < teamCap;
+                        boolean bonusLife = gameState.getLevel() % EXTRA_LIFE_FREQUENCY == 0 && gameState.getLives() < MAX_LIVES;
 
-                        currentScreen = new GameScreen(
-                                gameState,
-                                gameSettings.get(gameState.getLevel() - 1),
-                                bonusLife, width, height, FPS, shipTypeP1, shipTypeP2, achievementManager);
+                        currentScreen = new GameScreen(gameState, gameSettings.get(gameState.getLevel() - 1), bonusLife, width, height, FPS, shipType, achievementManager);
 
                         LOGGER.info("Starting " + WIDTH + "x" + HEIGHT + " game screen at " + FPS + " fps.");
                         returnCode = frame.setScreen(currentScreen);
@@ -134,7 +117,7 @@ public final class Core {
                     }
                     LOGGER.info("Starting " + WIDTH + "x" + HEIGHT + " score screen at " + FPS + " fps, with a score of "
                             + gameState.getScore() + ", "
-                            + gameState.getLivesRemaining() + " lives remaining, "
+                            + gameState.getLives() + " lives remaining, "
                             + gameState.getBulletsShot() + " bullets shot and "
                             + gameState.getShipsDestroyed() + " ships destroyed.");
                     currentScreen = new ScoreScreen(width, height, FPS, gameState, achievementManager);
@@ -167,9 +150,8 @@ public final class Core {
                     currentScreen = new PlayScreen(width, height, FPS);
                     LOGGER.info("Starting " + WIDTH + "x" + HEIGHT + " play screen at " + FPS + " fps.");
                     returnCode = frame.setScreen(currentScreen);
-                    coopSelected = ((PlayScreen) currentScreen).isCoopSelected();
 
-                    // playscreen -> shipselectionscreen
+                    // play screen -> ship selection screen
                     if (returnCode == 2) {
                         returnCode = 6;
                     }
@@ -178,37 +160,21 @@ public final class Core {
 
                 case 6:
                     // Ship selection for Player 1.
-                    currentScreen = new ShipSelectionScreen(width, height, FPS, 1);
+                    currentScreen = new ShipSelectionScreen(width, height, FPS);
                     returnCode = frame.setScreen(currentScreen);
-                    shipTypeP1 = ((ShipSelectionScreen) currentScreen).getSelectedShipType();
+                    shipType = ((ShipSelectionScreen) currentScreen).getSelectedShipType();
 
                     // If clicked back button, go back to the screen 1P screen -> Player select screen
-                    if (returnCode == 5) { break; }
-
-                    if (coopSelected) {
-                        returnCode = 7; // Go to Player 2 selection.
-                    } else {
+                    if (returnCode == 5)
+                        break;
+                    else
                         returnCode = 2; // Start game.
-                    }
-                    break;
-
-                case 7:
-                    // Ship selection for Player 2.
-                    currentScreen = new ShipSelectionScreen(width, height, FPS, 2);
-                    returnCode = frame.setScreen(currentScreen);
-
-                    // If clicked back button, go back to the screen 2P screen -> 1P screen
-                    if (returnCode == 6) { break; }
-
-                    shipTypeP2 = ((ShipSelectionScreen) currentScreen).getSelectedShipType();
-                    returnCode = 2; // Start game.
                     break;
 
                 case 8:
                     // High scores.
                     currentScreen = new HighScoreScreen(width, height, FPS);
-                    LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
-                            + " high score screen at " + FPS + " fps.");
+                    LOGGER.info("Starting " + WIDTH + "x" + HEIGHT + " high score screen at " + FPS + " fps.");
                     returnCode = frame.setScreen(currentScreen);
                     LOGGER.info("Closing high score screen.");
                     break;

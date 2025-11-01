@@ -5,22 +5,22 @@ package engine;
  */
 public class ItemData {
     /** Unique identifier for the item (e.g. "COIN", "HEAL", "SCORE"). */
-    private String type;
+    private final String type;
 
     /** sprite type (e.g. "ItemScore", "ItemHeal"). */
-    private String spriteType;
+    private final String spriteType;
 
     /** rarity tier (e.g. "COMMON", "UNCOMMON", "RARE"). */
-    private String dropTier;
+    private final String dropTier;
 
     /** numerical value of the item effect (e.g. heal amount, score amount). */
-    private int effectValue;
+    private final int effectValue;
 
     /** duration that the effect remains active. */
-    private int effectDuration;
+    private final int effectDuration;
 
     /** cost in coins required to activate this item on pickup (0 = free). */
-    private int cost;
+    private final int cost;
 
     /**
      * Constructs an ItemData object.
