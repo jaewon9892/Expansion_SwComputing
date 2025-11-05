@@ -2,7 +2,6 @@ package engine;
 
 import java.util.Random;
 import java.util.logging.Logger;
-
 import entity.EnemyShip;
 import entity.Item;
 import entity.ItemPool;
@@ -16,7 +15,7 @@ public final class ItemManager {
     private static ItemManager instance;
 
     /** Debug logger init */
-    private Logger logger;
+    private final Logger logger;
     private ItemManager() { logger = Core.getLogger(); }
 
     public static ItemManager getInstance() {
@@ -128,11 +127,6 @@ public final class ItemManager {
         // Pass ItemData directly to ItemPool
         int itemSpeed = 2;
         Item drop = ItemPool.getItem(chosenData, centerX, centerY, itemSpeed);
-
-        if (drop == null) {
-            logger.warning("[ItemManager]: Failed to create item: " + chosenData.getType());
-            return null;
-        }
 
         this.logger.info("[ItemManager]: created item " + drop.getType() + " at (" + centerX + ", " + centerY + ")");
 

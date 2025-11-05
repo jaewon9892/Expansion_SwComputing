@@ -2,9 +2,7 @@ package screen;
 
 import java.awt.event.KeyEvent;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import engine.Core;
 import engine.Score;
 import engine.SoundManager;
@@ -18,7 +16,7 @@ import engine.SoundManager;
 public class HighScoreScreen extends Screen {
 
     /** List of past high scores. */
-    private List<Score> highScores1P, highScores2P;
+    private List<Score> highScores;
 
     /**
      * Constructor, establishes the properties of the screen.
@@ -37,14 +35,11 @@ public class HighScoreScreen extends Screen {
         this.returnCode = 1;
 
         try {
-            this.highScores1P = Core.getFileManager().loadHighScores("1P");
-            this.highScores2P = Core.getFileManager().loadHighScores("2P");
+            this.highScores = Core.getFileManager().loadHighScores();
             //상위 7명만 남기기
-            highScores1P.sort((a, b) -> b.getScore() - a.getScore());
-            if (highScores1P.size() > 7) highScores1P = highScores1P.subList(0, 7);
-
-            highScores2P.sort((a, b) -> b.getScore() - a.getScore());
-            if (highScores2P.size() > 7) highScores2P = highScores2P.subList(0, 7);
+            highScores.sort((a, b) -> b.getScore() - a.getScore());
+            if (highScores.size() > 7)
+                highScores = highScores.subList(0, 7);
 
         } catch (NumberFormatException | IOException e) {
             logger.warning("Couldn't load high scores!");
@@ -70,8 +65,7 @@ public class HighScoreScreen extends Screen {
         super.update();
 
         draw();
-        if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)
-                && this.inputDelay.checkFinished())
+        if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE) && this.inputDelay.checkFinished())
             this.isRunning = false;
 
         // back button click event
@@ -86,18 +80,13 @@ public class HighScoreScreen extends Screen {
             }
         }
     }
-    private List<Score> getPlayerScores(String mode) {
-        return mode.equals("1P") ? highScores1P : highScores2P;
-    }
     /**
      * Draws the elements associated with the screen.
      */
     private void draw() {
         drawManager.initDrawing(this);
-
         drawManager.drawHighScoreMenu(this);
-        drawManager.drawHighScores(this, getPlayerScores("1P"), "1P"); // Left column
-        drawManager.drawHighScores(this, getPlayerScores("2P"), "2P"); // Right column
+        drawManager.drawHighScores(this, highScores); // Left column
 
         // hover highlight
         int mx = inputManager.getMouseX();

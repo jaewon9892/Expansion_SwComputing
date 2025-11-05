@@ -9,9 +9,9 @@ package engine;
 public class Cooldown {
 
 	/** Cooldown duration. */
-	private int milliseconds;
+	private final int milliseconds;
 	/** Maximum difference between durations. */
-	private int variance;
+	private final int variance;
 	/** Duration of this run, varies between runs if variance > 0. */
 	private int duration;
 	/** Beginning time. */
@@ -52,11 +52,8 @@ public class Cooldown {
 	 * @return Cooldown state.
 	 */
 	public final boolean checkFinished() {
-		if ((this.time == 0)
-				|| this.time + this.duration < System.currentTimeMillis())
-			return true;
-		return false;
-	}
+        return (this.time == 0) || this.time + this.duration < System.currentTimeMillis();
+    }
 
 	/**
 	 * Restarts the cooldown.

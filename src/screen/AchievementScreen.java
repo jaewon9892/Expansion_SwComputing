@@ -16,34 +16,24 @@ import java.util.stream.Collectors;
 public class AchievementScreen extends Screen {
 
     private static final int PAGE = 7;
-    private FileManager fileManager;
-    private AchievementManager achievementManager;
-    private List<Achievement> achievements;
+    private final FileManager fileManager;
+    private final List<Achievement> achievements;
     private List<String> completer;
     private List<String> completer1P;
-    private List<String> completer2P;
     private int currentIdx = 0;
     private int currentPage = 0;
-    private int maxPage;
+    private final int maxPage;
     private String numOfPages;
 
     public AchievementScreen(final int width, final int height, final int fps) {
         super(width, height, fps);
-        achievementManager = Core.getAchievementManager();
+        AchievementManager achievementManager = Core.getAchievementManager();
         achievements = achievementManager.getAchievements();
         fileManager = Core.getFileManager();
         this.completer = Core.getFileManager().getAchievementCompleter(achievements.get(currentIdx));
         this.returnCode = 3;
-        this.completer1P = completer.stream()
-                .filter(s -> s.startsWith("1:"))
-                .collect(Collectors.toList());
-        this.completer2P = completer.stream()
-                .filter(s -> s.startsWith("2:"))
-                .collect(Collectors.toList());
-        this.maxPage = Math.max(
-                (int) Math.ceil((double) completer1P.size() / PAGE),
-                (int) Math.ceil((double) completer2P.size() / PAGE)
-        ) - 1;
+        this.completer1P = completer.stream().filter(s -> s.startsWith("1:")).collect(Collectors.toList());
+        this.maxPage = (int) Math.ceil((double) completer1P.size() / PAGE) - 1;
         // Start menu music loop when the achievement screen is created
         SoundManager.playLoop("sound/menu_sound.wav");
     }
@@ -113,16 +103,11 @@ public class AchievementScreen extends Screen {
 
         int start = currentPage * PAGE;
 
-        int end1 = Math.min(start + PAGE, completer1P.size());
-        int end2 = Math.min(start + PAGE, completer2P.size());
-
+        int end = Math.min(start + PAGE, completer1P.size());
         List<String> page1P = (start < completer1P.size()) ?
-                completer1P.subList(start, end1) : Collections.emptyList();
+                completer1P.subList(start, end) : Collections.emptyList();
 
-        List<String> page2P = (start < completer2P.size()) ?
-                completer2P.subList(start, end2) : Collections.emptyList();
-
-        drawManager.drawAchievementMenu(this, achievements.get(currentIdx), page1P, page2P, numOfPages);
+        drawManager.drawAchievementMenu(this, achievements.get(currentIdx), page1P, numOfPages);
 
         // hover highlight
         int mx = inputManager.getMouseX();

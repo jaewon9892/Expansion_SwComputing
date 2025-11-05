@@ -1,10 +1,8 @@
 package engine;
 
-import screen.GameScreen;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import engine.SoundManager;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -54,12 +52,12 @@ public class AchievementManager {
      * Converts the achievements into a boolean list and
      * saves them using FileManager.
      */
-    public void saveToFile(String userName, String mode) throws IOException {
+    public void saveToFile(String userName) throws IOException {
         List<Boolean> flags = new ArrayList<>();
         for (Achievement a : achievements) {
             flags.add(a.isUnlocked());
         }
-        FileManager.getInstance().unlockAchievement(userName, flags, mode); // mode 추가
+        FileManager.getInstance().unlockAchievement(userName, flags); // mode 추가
     }
 
     /** Returns the current achievement list. */

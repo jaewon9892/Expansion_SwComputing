@@ -18,13 +18,13 @@ public class GameSettings {
 
 	private static final Logger LOGGER = Logger.getLogger(Core.class.getSimpleName());
 	/** Width of the level's enemy formation. */
-	private int formationWidth;
+	private final int formationWidth;
 	/** Height of the level's enemy formation. */
-	private int formationHeight;
+	private final int formationHeight;
 	/** Speed of the enemies, function of the remaining number. */
-	private int baseSpeed;
+	private final int baseSpeed;
 	/** Frequency of enemy shootings, +/- 30%. */
-	private int shootingFrecuency;
+	private final int shootingFrequency;
 
 	//추가 사항
 	public static class ChangeData {
@@ -169,15 +169,15 @@ public class GameSettings {
 	 *                          Height of the level's enemy formation.
 	 * @param baseSpeed
 	 *                          Speed of the enemies.
-	 * @param shootingFrecuency
+	 * @param shootingFrequency
 	 *                          Frecuency of enemy shootings, +/- 30%.
 	 */
 	public GameSettings(final int formationWidth, final int formationHeight,
-						final int baseSpeed, final int shootingFrecuency) {
+						final int baseSpeed, final int shootingFrequency) {
 		this.formationWidth = formationWidth;
 		this.formationHeight = formationHeight;
 		this.baseSpeed = baseSpeed;
-		this.shootingFrecuency = shootingFrecuency;
+		this.shootingFrequency = shootingFrequency;
 		this.changeDataList = new ArrayList<>();
 	}
 
@@ -203,10 +203,10 @@ public class GameSettings {
 	}
 
 	/**
-	 * @return the shootingFrecuency
+	 * @return the shootingFrequency
 	 */
-	public final int getShootingFrecuency() {
-		return shootingFrecuency;
+	public final int getShootingFrequency() {
+		return shootingFrequency;
 	}
 
 }
