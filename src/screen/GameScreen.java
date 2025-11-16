@@ -350,7 +350,7 @@ public class GameScreen extends Screen {
             this.screenFinishedCooldown.reset();
         }
 
-        if (this.levelFinished && this.screenFinishedCooldown.checkFinished()) {
+        if (this.levelFinished && this.screenFinishedCooldown.checkFinished() && !this.isAugSelect) {
             if (!achievementManager.hasPendingToasts()) {
                 this.isRunning = false;
             }
