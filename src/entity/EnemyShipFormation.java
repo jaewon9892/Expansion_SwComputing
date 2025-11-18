@@ -357,42 +357,55 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
     public final void shoot(final Set<Bullet> bullets) {
         if (this.shooters.isEmpty()) return;
 
+        // 기존과 동일하게: 먼저 랜덤 shooter 선택
         int index = (int) (Math.random() * this.shooters.size());
         EnemyShip shooter = this.shooters.get(index);
 
-        if (this.shootingCooldown.checkFinished()) {
-            this.shootingCooldown.reset();
+        // 쿨다운이 끝났을 때만 발사
+        if (!this.shootingCooldown.checkFinished())
+            return;
 
-            int bulletWidth = 3 * 2;
-            int bulletHeight = 5 * 2;
-            int spawnY = shooter.getPositionY() + shooter.getHeight();
+        this.shootingCooldown.reset();
+        spawnBulletFromShooter(shooter, bullets);
+    }
+    /**
+     * 총알 생성 유틸 메서드 추가 (spawnBulletFromShooter)
+     * enemy ship 기준으로 탄환 생성
+     * B 타입은 더 빠르게, C 타입은 양쪽 두 발을 발사한다.
+     * */
+    private void spawnBulletFromShooter(final EnemyShip shooter,
+                                        final Set<Bullet> bullets) {
 
-            int bulletSpeed = BULLET_SPEED;
+        int bulletWidth = 3 * 2;
+        int bulletHeight = 5 * 2;
+        int spawnY = shooter.getPositionY() + shooter.getHeight();
 
-            if (shooter.getSpriteType() == SpriteType.EnemyShipB1
-                    || shooter.getSpriteType() == SpriteType.EnemyShipB2) {
-                bulletSpeed = BULLET_SPEED * 2;
-            }
+        int bulletSpeed = BULLET_SPEED;
 
-            if (shooter.getSpriteType() == SpriteType.EnemyShipC1 || shooter.getSpriteType() == SpriteType.EnemyShipC2) {
-                int offset = 6;
+        // B 타입은 속도 2배
+        if (shooter.getSpriteType() == SpriteType.EnemyShipB1 || shooter.getSpriteType() == SpriteType.EnemyShipB2) {
+            bulletSpeed = BULLET_SPEED * 2;
+        }
 
-                Bullet b1 = BulletPool.getBullet(
-                        shooter.getPositionX() + shooter.getWidth() / 2 - offset,
-                        spawnY, bulletSpeed, bulletWidth, bulletHeight, Entity.Team.ENEMY);
-                bullets.add(b1);
+        // C 타입은 양쪽으로 두 발
+        if (shooter.getSpriteType() == SpriteType.EnemyShipC1 || shooter.getSpriteType() == SpriteType.EnemyShipC2) {
+            int offset = 6;
 
-                Bullet b2 = BulletPool.getBullet(
-                        shooter.getPositionX() + shooter.getWidth() / 2 + offset,
-                        spawnY, bulletSpeed, bulletWidth, bulletHeight, Entity.Team.ENEMY);
-                bullets.add(b2);
+            Bullet b1 = BulletPool.getBullet(
+                    shooter.getPositionX() + shooter.getWidth() / 2 - offset,
+                    spawnY, bulletSpeed, bulletWidth, bulletHeight, Entity.Team.ENEMY);
+            bullets.add(b1);
 
-            } else {
-                Bullet b = BulletPool.getBullet(
-                        shooter.getPositionX() + shooter.getWidth() / 2,
-                        spawnY, bulletSpeed, bulletWidth, bulletHeight, Entity.Team.ENEMY);
-                bullets.add(b);
-            }
+            Bullet b2 = BulletPool.getBullet(
+                    shooter.getPositionX() + shooter.getWidth() / 2 + offset,
+                    spawnY, bulletSpeed, bulletWidth, bulletHeight, Entity.Team.ENEMY);
+            bullets.add(b2);
+
+        } else {
+            Bullet b = BulletPool.getBullet(
+                    shooter.getPositionX() + shooter.getWidth() / 2,
+                    spawnY, bulletSpeed, bulletWidth, bulletHeight, Entity.Team.ENEMY);
+            bullets.add(b);
         }
     }
 
