@@ -347,12 +347,8 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
     }
 
     /**
-     * Shoots a bullet downwards.
-     * Fires bullets from C-type and B-type enemies in the formation.
-     * C-type fires double bullets, B-type fires faster bullets.
-     *
-     * @param bullets
-     *            Bullets set to add the bullet being shot.
+     * Shoots from a random enemy ship after cooldown.
+     * Bullet creation handled in spawnBulletFromShooter().
      */
     public final void shoot(final Set<Bullet> bullets) {
         if (this.shooters.isEmpty()) return;
@@ -360,42 +356,54 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
         int index = (int) (Math.random() * this.shooters.size());
         EnemyShip shooter = this.shooters.get(index);
 
-        if (this.shootingCooldown.checkFinished()) {
-            this.shootingCooldown.reset();
+        if (!this.shootingCooldown.checkFinished())
+            return;
 
-            int bulletWidth = 3 * 2;
-            int bulletHeight = 5 * 2;
-            int spawnY = shooter.getPositionY() + shooter.getHeight();
+        this.shootingCooldown.reset();
+        spawnBulletFromShooter(shooter, bullets);
+    }
+    /**
+     * Bullet spawn utility.
+     * - Applies A/B/C-type firing rules (single / fast / double shot).
+     * - Computes bullet size, speed, and spawn position.
+     * - Extracted to keep shoot() simple and maintainable.
+     */
+    private void spawnBulletFromShooter(final EnemyShip shooter,
+                                        final Set<Bullet> bullets) {
 
-            int bulletSpeed = BULLET_SPEED;
+        int bulletWidth = 3 * 2;
+        int bulletHeight = 5 * 2;
+        int spawnY = shooter.getPositionY() + shooter.getHeight();
 
-            if (shooter.getSpriteType() == SpriteType.EnemyShipB1
-                    || shooter.getSpriteType() == SpriteType.EnemyShipB2) {
-                bulletSpeed = BULLET_SPEED * 2;
-            }
+        int bulletSpeed = BULLET_SPEED;
 
-            if (shooter.getSpriteType() == SpriteType.EnemyShipC1 || shooter.getSpriteType() == SpriteType.EnemyShipC2) {
-                int offset = 6;
+        if (shooter.getSpriteType() == SpriteType.EnemyShipB1 ||
+                shooter.getSpriteType() == SpriteType.EnemyShipB2) {
+            bulletSpeed = BULLET_SPEED * 2;
+        }
 
-                Bullet b1 = BulletPool.getBullet(
-                        shooter.getPositionX() + shooter.getWidth() / 2 - offset,
-                        spawnY, bulletSpeed, bulletWidth, bulletHeight, Entity.Team.ENEMY);
-                bullets.add(b1);
+        if (shooter.getSpriteType() == SpriteType.EnemyShipC1 ||
+                shooter.getSpriteType() == SpriteType.EnemyShipC2) {
 
-                Bullet b2 = BulletPool.getBullet(
-                        shooter.getPositionX() + shooter.getWidth() / 2 + offset,
-                        spawnY, bulletSpeed, bulletWidth, bulletHeight, Entity.Team.ENEMY);
-                bullets.add(b2);
+            int offset = 6;
 
-            } else {
-                Bullet b = BulletPool.getBullet(
-                        shooter.getPositionX() + shooter.getWidth() / 2,
-                        spawnY, bulletSpeed, bulletWidth, bulletHeight, Entity.Team.ENEMY);
-                bullets.add(b);
-            }
+            Bullet b1 = BulletPool.getBullet(
+                    shooter.getPositionX() + shooter.getWidth() / 2 - offset,
+                    spawnY, bulletSpeed, bulletWidth, bulletHeight, Entity.Team.ENEMY);
+            bullets.add(b1);
+
+            Bullet b2 = BulletPool.getBullet(
+                    shooter.getPositionX() + shooter.getWidth() / 2 + offset,
+                    spawnY, bulletSpeed, bulletWidth, bulletHeight, Entity.Team.ENEMY);
+            bullets.add(b2);
+
+        } else {
+            Bullet b = BulletPool.getBullet(
+                    shooter.getPositionX() + shooter.getWidth() / 2,
+                    spawnY, bulletSpeed, bulletWidth, bulletHeight, Entity.Team.ENEMY);
+            bullets.add(b);
         }
     }
-
     /**
      * Destroys a ship.
      *
