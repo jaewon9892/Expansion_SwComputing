@@ -1,8 +1,7 @@
 package screen;
 
 import java.awt.event.KeyEvent;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import engine.Cooldown;
 import engine.Core;
@@ -10,6 +9,8 @@ import engine.GameSettings;
 import engine.GameState;
 import engine.*;
 import engine.SoundManager;
+import engine.augment.Augment;
+import engine.augment.AugmentPool;
 import entity.*;
 import entity.PlayerShip;
 
@@ -39,7 +40,9 @@ public class GameScreen extends Screen {
     private static final int SCREEN_CHANGE_INTERVAL = 1500;
     /** Height of the interface separation line. */
     private static final int SEPARATION_LINE_HEIGHT = 68;
-      private static final int HIGH_SCORE_NOTICE_DURATION = 2000;
+    private static final int HIGH_SCORE_NOTICE_DURATION = 2000;
+    private static final int MAX_EXP = 100;
+    private static final int AUGMENT_OPTION_COUNT = 3;
     private static boolean sessionHighScoreNotified = false;
 
     /** For Check Achievement
@@ -54,6 +57,8 @@ public class GameScreen extends Screen {
     private EnemyShip enemyShipSpecial;
     /** Formation of player ships. */
     private PlayerShip playerShip;
+    /** Stat of player ships. */
+    private PlayerShipStats playerStats;
     /** Minimum time between bonus ship appearances. */
     private Cooldown enemyShipSpecialCooldown;
     /** Time until bonus ship explosion disappears. */
@@ -85,6 +90,18 @@ public class GameScreen extends Screen {
 
     private final GameState state;
     DrawManager.SpriteType shipType;
+
+    /** control augment screen and player level up toast screen
+     * 2025-11-16 add new variable
+     * */
+    private List<Augment> augOption;
+    private boolean isAugSelect = false;
+    private int augmentIndex = 0;
+    private Cooldown augmentCooldown;
+
+    private boolean isLevelUpToast = false;
+    private long levelUpToastStart;
+
     /**
      * Constructor, establishes the properties of the screen.
      *
@@ -114,6 +131,7 @@ public class GameScreen extends Screen {
         this.bonusLife = bonusLife;
         this.level = gameState.getLevel();
         this.playerShip = gameState.getPlayerShip();
+        this.playerStats = playerShip.getStats();
 
         // for check Achievement 2025-10-02 add
         this.achievementManager = achievementManager;
@@ -175,6 +193,9 @@ public class GameScreen extends Screen {
         this.isPaused = false;
         this.pauseCooldown = Core.getCooldown(300);
         this.returnMenuCooldown = Core.getCooldown(300);
+
+        augmentCooldown = Core.getCooldown(300);  // 0.2초 디바운스
+        augmentCooldown.reset();
     }
 
     /**
@@ -233,7 +254,18 @@ public class GameScreen extends Screen {
             return;
         }
 
-        if (!this.isPaused) {
+        checkLevelUp();
+        if (isLevelUpToast) {
+            if (System.currentTimeMillis() - levelUpToastStart >= 1000) {
+                cleanBullets();
+                isLevelUpToast = false;
+            }
+        }
+        if (isAugSelect && !isLevelUpToast) {
+            selectAugment();
+        }
+
+        if (!this.isPaused && !this.isAugSelect) {
             if (this.inputDelay.checkFinished() && !this.levelFinished) {
                 boolean moveRight, moveLeft, moveUp, moveDown, fire;
                 moveRight = inputManager.isP1RightPressed();
@@ -324,7 +356,7 @@ public class GameScreen extends Screen {
             this.screenFinishedCooldown.reset();
         }
 
-        if (this.levelFinished && this.screenFinishedCooldown.checkFinished()) {
+        if (this.levelFinished && this.screenFinishedCooldown.checkFinished() && !this.isAugSelect) {
             if (!achievementManager.hasPendingToasts()) {
                 this.isRunning = false;
             }
@@ -363,7 +395,8 @@ public class GameScreen extends Screen {
 
 		// Aggregate UI (team score & team lives)
 		drawManager.drawScore(this, state.getScore());
-        drawManager.drawLives(this, playerShip.getStats().getHP());
+        drawManager.drawExp(this, playerStats.getExp());
+        drawManager.drawLives(this, playerStats.getHP());
 		drawManager.drawCoins(this,  state.getCoins()); // ADD THIS LINE - 2P mode: team total
         // 2P mode: setting per-player coin count
 //        if (state.isCoop()) {
@@ -410,8 +443,53 @@ public class GameScreen extends Screen {
                     this.height / 2 + 60
             );
 		}
+        if (this.isLevelUpToast) {
+            drawManager.drawLevelUpToast(this);
+        }
 
+        if(this.isAugSelect && !isLevelUpToast){
+            drawManager.drawAugmentOverlay(this, augOption, augmentIndex);
+        }
         drawManager.completeDrawing(this);
+    }
+
+    /**
+     * Checks whether the player has enough EXP to level up.
+     * 2025-11-16 Added in commit : feat : Add augment select system.
+     */
+    private void checkLevelUp(){
+        if(playerStats.getExp() >= MAX_EXP){
+            playerStats.resetExp();
+            List<Augment> list = new ArrayList<>(AugmentPool.pool);
+            Collections.shuffle(list);
+            augOption = list.subList(0, Math.min(AUGMENT_OPTION_COUNT, list.size()));
+            isAugSelect = true;
+            isLevelUpToast = true;
+            cleanBullets();
+            SoundManager.playOnce("sound/win.wav");
+            levelUpToastStart = System.currentTimeMillis();
+        }
+    }
+
+    /**
+     * Handles input for the augment selection menu.
+     * 2025-11-16 Added in commit : feat : Add augment select system.
+     */
+    private void selectAugment(){
+        if(isAugSelect){
+            if((inputManager.isKeyDown(KeyEvent.VK_UP) ||  inputManager.isKeyDown(KeyEvent.VK_W))
+                    && augmentCooldown.checkFinished()){
+                augmentIndex = (augmentIndex - 1 + AUGMENT_OPTION_COUNT) % AUGMENT_OPTION_COUNT;
+                augmentCooldown.reset();
+            }else if((inputManager.isKeyDown(KeyEvent.VK_DOWN) ||  inputManager.isKeyDown(KeyEvent.VK_S))
+                    && augmentCooldown.checkFinished()){
+                augmentIndex = (augmentIndex + 1 + AUGMENT_OPTION_COUNT) % AUGMENT_OPTION_COUNT;
+                augmentCooldown.reset();
+            }else if((inputManager.isKeyDown(KeyEvent.VK_SPACE) && augmentCooldown.checkFinished())) {
+                isAugSelect = false;
+                augmentCooldown.reset();
+            }
+        }
     }
 
     /**
@@ -469,9 +547,11 @@ public class GameScreen extends Screen {
         for (Bullet bullet : this.bullets) {
             if (bullet.getSpeed() > 0) {
                 // Enemy bullet vs both players
-                if (playerShip != null && !playerShip.isDestroyed() && checkCollision(bullet, playerShip) && !this.levelFinished) {
+                if (playerShip != null && !playerShip.isDestroyed() && checkCollision(bullet, playerShip) &&
+                        !this.levelFinished) {
                     recyclable.add(bullet);
-                    drawManager.triggerExplosion(playerShip.getPositionX(), playerShip.getPositionY(), false, playerShip.getStats().getHP() == 1);
+                    drawManager.triggerExplosion(playerShip.getPositionX(), playerShip.getPositionY(), false,
+                            playerShip.getStats().getHP() == 1);
                     playerShip.addHit();
 
                     playerShip.destroy(); // explosion/respawn handled by Ship.update()
@@ -501,9 +581,12 @@ public class GameScreen extends Screen {
                         if (enemyShip.isDestroyed()) {
                             int points = enemyShip.getStats().getPointValue();
                             state.addCoins(enemyShip.getStats().getCoinValue()); // 2P mode: modified to per-player coins
+                            int exp = enemyShip.getStats().getExpValue();
 
-                            drawManager.triggerExplosion(enemyShip.getPositionX(), enemyShip.getPositionY(), true, finalShip);
+                            drawManager.triggerExplosion(enemyShip.getPositionX(), enemyShip.getPositionY(),
+                                    true, finalShip);
                             state.addScore(points); // 2P mode: modified to add to P1 score for now
+                            playerStats.addExp(exp);
                             state.incShipsDestroyed();
 
                             // obtain drop from ItemManager (may return null)
@@ -523,10 +606,12 @@ public class GameScreen extends Screen {
 
                 if (this.enemyShipSpecial != null && !this.enemyShipSpecial.isDestroyed() && checkCollision(bullet, this.enemyShipSpecial)) {
                     int points = this.enemyShipSpecial.getStats().getPointValue();
+                    int exp = this.enemyShipSpecial.getStats().getExpValue();
 
                     state.addCoins(this.enemyShipSpecial.getStats().getCoinValue()); // 2P mode: modified to per-player coins
 
                     state.addScore(points);
+                    playerStats.addExp(exp);
                     state.incShipsDestroyed(); // 2P mode: modified incrementing ships destroyed
 
 					this.enemyShipSpecial.destroy();
@@ -605,6 +690,6 @@ public class GameScreen extends Screen {
     private void earlyExitToScore() {
         SoundManager.stopBackgroundMusic();
         // 목숨 0으로
-        while (playerShip.getStats().getHP() > 0) playerShip.getStats().setHP(playerShip.getStats().getHP() - 1);
+        while (playerStats.getHP() > 0) playerStats.setHP(playerStats.getHP() - 1);
     }
 }

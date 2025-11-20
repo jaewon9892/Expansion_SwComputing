@@ -10,6 +10,7 @@ public class PlayerShipStats {
     /** Ship properties **/
     private int HP;
     private int ATK;
+    private int exp = 0;
     private final int moveSpeed;
     private final int bulletSpeed;
     private final int shootingInterval;
@@ -42,4 +43,9 @@ public class PlayerShipStats {
     public int getShootingInterval() { return this.shootingInterval; }
     public int getBulletWidth() { return bulletWidth; }
     public int getBulletHeight() { return bulletHeight; }
+    public void addExp(int delta) { exp += delta; }
+    public int getExp() { return exp; }
+    public void resetExp() {
+        exp -= 100;
+    }
 }

@@ -70,7 +70,8 @@ public class GameState {
 	 * @param coins          // ADD THIS LINE
 	 *                       Current coin count. // ADD THIS LINE
 	 */
-	public GameState(final PlayerShip playerShip, final int level, final int score, final int bulletsShot, final int shipsDestroyed, final int coins) {
+	public GameState(final PlayerShip playerShip, final int level, final int score, final int bulletsShot,
+                     final int shipsDestroyed, final int coins) {
         this.playerShip = playerShip;
 		this.level = level;
 		this.score = score;
